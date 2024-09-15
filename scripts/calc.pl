@@ -27,8 +27,8 @@ GetOptions(
 
 my ($total_width, $total_height);
 
-chomp($total_width = `tmux run "echo '#{window_width}'"`);
-chomp($total_height = `tmux run "echo '#{window_height}'"`);
+chomp($total_width = `tmux display-message -p '#{window_width}'`);
+chomp($total_height = `tmux display-message -p '#{window_height}'`);
 
 print("total_width=$total_width, total_heigth=$total_height\n") if $verbose;
 
