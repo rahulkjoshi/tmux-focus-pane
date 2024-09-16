@@ -65,14 +65,23 @@ function reset_focus() {
     if [[ -z "${restore_command}" ]]; then
         tmux display-message "found no saved restore command"
     fi
+    remove_hooks
     tmux set -ug @focus-restore-command
     eval "${restore_command}"
+}
+
+function remove_hooks() {
+    tmux set-option -ug 'window-pane-changed[13]'
+    tmux set-option -ug 'session-window-changed[13]'
 }
 
 while [[ -n "$*" ]]; do 
     case $1 in
         toggle )
             toggle_focus
+            ;;
+        remove-hooks )
+            remove_hooks
             ;;
     esac
     shift

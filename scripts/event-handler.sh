@@ -16,7 +16,5 @@ fi
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-tmux set-option -ug 'window-pane-changed[13]'
-tmux set-option -ug 'session-window-changed[13]'
-
+${CURRENT_DIR}/main.sh remove-hooks
 ${CURRENT_DIR}/main.sh toggle
