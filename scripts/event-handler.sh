@@ -3,7 +3,7 @@
 
 FOCUS_WINDOW_NAME="focus"
 
-if [[ "$( tmux list-window -f '#{==:#W,${FOCUS_WINDOW_NAME}}' | wc -l )" -eq 0 ]]; then
+if [[ -z $( tmux show -gqv @focus-restore-command ) ]]; then
     exit
 fi
 
@@ -16,5 +16,4 @@ fi
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-${CURRENT_DIR}/main.sh remove-hooks
 ${CURRENT_DIR}/main.sh toggle

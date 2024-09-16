@@ -1,9 +1,10 @@
 #! /usr/bin/env bash
 #! vi: ft=bash
 
-CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
+INSTALL_RESET_HOOK=true
 FOCUS_WINDOW_NAME="focus"
+
+CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function toggle_focus() {
     local restore_command="$( tmux show -gqv @focus-restore-command )"
@@ -12,6 +13,22 @@ function toggle_focus() {
     else
         reset_focus
     fi
+}
+
+function toggle_pane_tag {
+    local focus_pane="$( tmux list-panes -F '#D' -f '#{pane_active}' )"
+    local pane_list="$( tmux show -gqv @focus-tagged-panes )"
+
+    if [[ ! "${pane_list}" =~ $focus_pane(,|$) ]]; then
+        if [[ -n "${pane_list}" ]]; then
+            pane_list="${pane_list},${focus_pane}"
+        else
+            pane_list="${focus_pane}"
+        fi
+    else
+        pane_list="$( echo ${pane_list} | sed -E "s/^${focus_pane},?|,?${focus_pane}//" )"
+    fi
+    tmux set -g '@focus-tagged-panes' "${pane_list}"
 }
 
 function open_focus() {
@@ -27,8 +44,10 @@ function open_focus() {
     tmux pipep -t "${temp_pane}" -I "echo 'clear'"
 
     # Event hooks to invoke handler when window or pane is changed
-    tmux set-option -og 'window-pane-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'"
-    tmux set-option -og 'session-window-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'"
+    if [[ "${INSTALL_RESET_HOOK}" == "true" ]]; then
+        tmux set-option -og 'window-pane-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'"
+        tmux set-option -og 'session-window-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'"
+    fi
 }
 
 INACTIVE_PANE_BORDER_FMT="fg=color0"
@@ -82,6 +101,9 @@ while [[ -n "$*" ]]; do
             ;;
         remove-hooks )
             remove_hooks
+            ;;
+        pane-tag )
+            toggle_pane_tag
             ;;
     esac
     shift
