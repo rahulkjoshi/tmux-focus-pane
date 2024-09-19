@@ -1,21 +1,12 @@
 #! /usr/bin/env bash
 #! vi: ft=bash
 
-INSTALL_RESET_HOOK=true
 FOCUS_WINDOW_NAME="focus"
 
 INACTIVE_PANE_BORDER_FMT="fg=color0"
 ACTIVE_PANE_BORDER_FMT="fg=color250"
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-function read_vars() {
-    local v;
-    v=$( tmux show -gqv @focus-install-reset-hook )
-    if [[ -n "${v}" && "${v}" =~ (true|false) ]]; then
-        INSTALL_RESET_HOOK="${v}"
-    fi
-}
 
 function toggle_focus() {
     local direction="${1}"
@@ -60,12 +51,6 @@ function open_focus() {
     tmux set -g @focus-restore-command "${restore_command}" >> /tmp/focus-pane-debug 2>&1
     tmux swapp -s "${focus_pane}" -t "${temp_pane}" >> /tmp/focus-pane-debug 2>&1
     tmux pipep -t "${temp_pane}" -I "echo 'clear'"
-
-    # Event hooks to invoke handler when window or pane is changed
-    if [[ "${INSTALL_RESET_HOOK}" == "true" ]]; then
-        tmux set-option -og 'window-pane-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'" >> /tmp/focus-pane-debug 2>&1
-        tmux set-option -og 'session-window-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'" >> /tmp/focus-pane-debug 2>&1
-    fi
 }
 
 function draw_focus_window() {
@@ -104,7 +89,6 @@ function reset_focus() {
     fi
     local focus_pane
     focus_pane=$( tmux show -gqv @focus-pane )
-    remove_hooks
     tmux set -ug @focus-restore-command
     tmux set -ug @focus-pane
     eval "${restore_command}"
@@ -113,12 +97,15 @@ function reset_focus() {
     fi
 }
 
+function install_hooks() {
+    tmux set-option -og 'window-pane-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'" >> /tmp/focus-pane-debug 2>&1
+    tmux set-option -og 'session-window-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'" >> /tmp/focus-pane-debug 2>&1
+}
+
 function remove_hooks() {
     tmux set-option -ug 'window-pane-changed[13]'
     tmux set-option -ug 'session-window-changed[13]'
 }
-
-read_vars
 
 cmd=''
 arg1=''
@@ -126,6 +113,9 @@ while [[ -n "$*" ]]; do
     case $1 in
         toggle )
             cmd='toggle_focus'
+            ;;
+        install-hooks )
+            cmd='install_hooks'
             ;;
         remove-hooks )
             cmd='remove_hooks'
@@ -139,5 +129,9 @@ while [[ -n "$*" ]]; do
     esac
     shift
 done
+
+if [[ -z "${cmd}" ]]; then
+    exit 2
+fi
 
 "${cmd}" "${arg1}"
