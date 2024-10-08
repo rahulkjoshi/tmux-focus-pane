@@ -82,6 +82,10 @@ function draw_focus_window() {
 
 function reset_focus() {
     local direction="${1}"
+    if [[! "${direction}" =~ -L|-R|-U|-D ]]; then
+        tmux display-message "unknown direction ${direction}"
+        return 1
+    fi
     local restore_command
     restore_command="$( tmux show -gqv @focus-restore-command )"
     if [[ -z "${restore_command}" ]]; then
@@ -107,6 +111,10 @@ function remove_hooks() {
     tmux set-option -ug 'session-window-changed[13]'
 }
 
+function usage() {
+    tmux display-message "available commands: [toggle | install-hooks | remove-hooks | pane-tag | usage]"
+}
+
 cmd=''
 arg1=''
 while [[ -n "$*" ]]; do 
@@ -122,6 +130,9 @@ while [[ -n "$*" ]]; do
             ;;
         pane-tag )
             cmd='toggle_pane_tag'
+            ;;
+        list|usage )
+            cmd='usage'
             ;;
         * )
             arg1="${1}"
