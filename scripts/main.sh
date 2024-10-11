@@ -37,6 +37,13 @@ function toggle_pane_tag {
     tmux set -g '@focus-tagged-panes' "${pane_list}"
 }
 
+function list_pane_tags() {
+    local pane_list
+    pane_list="$( tmux show -gqv @focus-tagged-panes | sed -e 's/\%/%%/g' | sed -e 's/,/ /g')"
+
+    tmux display-message "Auto-focus panes: [${pane_list}]"
+}
+
 function open_focus() {
     local focus_pane
     focus_pane="$( tmux list-panes -F '#D' -f '#{pane_active}' )"
@@ -82,7 +89,7 @@ function draw_focus_window() {
 
 function reset_focus() {
     local direction="${1}"
-    if [[! "${direction}" =~ -L|-R|-U|-D ]]; then
+    if [[ ! "${direction}" =~ -L|-R|-U|-D ]]; then
         tmux display-message "unknown direction ${direction}"
         return 1
     fi
@@ -112,7 +119,7 @@ function remove_hooks() {
 }
 
 function usage() {
-    tmux display-message "available commands: [toggle | install-hooks | remove-hooks | pane-tag | usage]"
+    tmux display-message "available commands: [toggle | install-hooks | remove-hooks | pane-tag | list-pane-tags | usage]"
 }
 
 cmd=''
@@ -130,6 +137,9 @@ while [[ -n "$*" ]]; do
             ;;
         pane-tag )
             cmd='toggle_pane_tag'
+            ;;
+        list-pane-tags )
+            cmd='list_pane_tags'
             ;;
         list|usage )
             cmd='usage'
