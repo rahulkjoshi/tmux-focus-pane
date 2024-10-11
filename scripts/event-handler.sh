@@ -29,7 +29,7 @@ function defocus() {
 
 function refocus() {
     local pane_list
-    pane_list="$( tmux show -gqv @focus-tagged-panes )"
+    pane_list="$( tmux show -gqv @tmux-focus-tagged-panes )"
     local focus_pane
     focus_pane="$( tmux list-panes -F '#D' -f '#{pane_active}' )"
 
@@ -39,7 +39,7 @@ function refocus() {
 }
 
 function main() {
-    if [[ -z $( tmux show -gqv @focus-restore-command ) ]]; then
+    if [[ -z $( tmux show -gqv @tmux-focus-restore-command ) ]]; then
         refocus
     else
         defocus
