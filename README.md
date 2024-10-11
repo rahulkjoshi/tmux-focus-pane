@@ -30,7 +30,8 @@ Use the `@tmux-focus-toggle` binding (default `prefix + z`) to toggle zooming a 
 
 ### Zoom Tag (Auto zoom)
 
-> [!NOTE] Requires enabling hooks
+> [!Note]
+> Requires enabling hooks
 
 > TODO
 
