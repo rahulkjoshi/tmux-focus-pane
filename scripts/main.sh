@@ -115,8 +115,8 @@ function reset_focus() {
 }
 
 function install_hooks() {
-    tmux set-option -og 'window-pane-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'" >> /tmp/tmux-focus-pane-debug 2>&1
-    tmux set-option -og 'session-window-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'" >> /tmp/tmux-focus-pane-debug 2>&1
+    tmux set -g 'window-pane-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'" >> /tmp/tmux-focus-pane-debug 2>&1
+    tmux set -g 'session-window-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh'" >> /tmp/tmux-focus-pane-debug 2>&1
 }
 
 function remove_hooks() {

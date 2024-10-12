@@ -5,8 +5,11 @@ CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 focus_window_name="focus"
 
 function defocus() {
+    local focus_pane
+    focus_pane=$(tmux show -gqv @tmux-focus-pane)
+
     if [[ "$( tmux list-window -f '#{window_active}' -F "#{==:#W,${focus_window_name}}" )" -eq 1 ]]; then
-        if [[ $( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F '#{pane_dead}' ) -eq 0 ]]; then
+        if [[ $( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F "#{==:#D,${focus_pane}}" ) -eq 1 ]]; then
             # Active window and active pane are the focus pane
             exit
         fi
@@ -24,6 +27,7 @@ function defocus() {
         move_flag='-D'
     fi
 
+    echo "callling toggle '${move_flag}'" >> /tmp/tmux-focus-pane-debug
     "${CURRENT_DIR}/main.sh" toggle "${move_flag}"
 }
 
@@ -34,6 +38,7 @@ function refocus() {
     focus_pane="$( tmux list-panes -F '#D' -f '#{pane_active}' )"
 
     if [[ "${pane_list}" =~ $focus_pane(,|$) ]]; then
+        echo "callling toggle" >> /tmp/tmux-focus-pane-debug
         "${CURRENT_DIR}/main.sh" toggle
     fi
 }
