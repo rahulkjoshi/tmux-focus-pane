@@ -7,7 +7,6 @@ focus_window_name="focus"
 HOOK_NAME=''
 
 function defocus() {
-
     local focus_pane
     focus_pane=$(tmux show -gqv @tmux-focus-pane)
 

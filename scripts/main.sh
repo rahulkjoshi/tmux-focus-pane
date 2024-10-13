@@ -13,9 +13,7 @@ PANE_DIRECTION=''
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function toggle_focus() {
-    local restore_command
-    restore_command="$( tmux show -gqv @tmux-focus-restore-command )"
-    if [[ -z "${restore_command}" ]]; then
+    if [[ -z "$( tmux show -gqv @tmux-focus-restore-command )" ]]; then
         open_focus
     else
         reset_focus
@@ -53,10 +51,11 @@ function open_focus() {
     tmux set -g @tmux-focus-pane "${focus_pane}"
     # Create new window named focus
     tmux new-window -n ${FOCUS_WINDOW_NAME} >> /tmp/tmux-focus-pane-debug 2>&1
-    draw_focus_window
 
     local temp_pane
-    temp_pane="$( tmux list-panes -t ${FOCUS_WINDOW_NAME} -F '#{pane_id}' -f '#{pane_active}' )"
+    temp_pane=$( draw_focus_window )
+    tmux set -g @tmux-focus-temp-pane "${temp_pane}"
+
     local restore_command="tmux swapp -s '${focus_pane}' -t '${temp_pane}'; tmux killw -t ${FOCUS_WINDOW_NAME}"
     tmux set -g @tmux-focus-restore-command "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
     tmux swapp -s "${focus_pane}" -t "${temp_pane}" >> /tmp/tmux-focus-pane-debug 2>&1
@@ -64,11 +63,17 @@ function open_focus() {
 }
 
 function draw_focus_window() {
-    if [[ "$( tmux list-panes -t ${FOCUS_WINDOW_NAME} | wc -l )" -ne 1 ]]; then
-       tmux kill-pane -a -t "$( tmux list-panes -t ${FOCUS_WINDOW_NAME} -F '#{pane_id}' -f '#{pane_active}' )"
-    fi
     local temp_pane
-    temp_pane="$( tmux list-panes -t ${FOCUS_WINDOW_NAME} -F '#{pane_id}' )"
+    local active_panes
+    active_panes=$( tmux list-panes -t ${FOCUS_WINDOW_NAME} -f '#{pane_active}' -F '#D' )
+    if (( $( echo "${active_panes}" | wc -l ) != 1 )); then
+        temp_pane=$( tmux splitw -t "${FOCUS_WINDOW_NAME}" -h -P -F '#D' )
+    else
+        temp_pane="$active_panes"
+    fi
+    tmux kill-pane -a -t "${temp_pane}"
+    echo "${temp_pane}"
+
     local h_gutter
     local v_gutter
     IFS=',' read -r h_gutter v_gutter <<< "$( "${CURRENT_DIR}/calc.pl" )"
@@ -76,24 +81,18 @@ function draw_focus_window() {
     # Partition space around focus
     # Left and right
     if [[ "${h_gutter}" -ne 0 ]]; then
-        {
-            tmux splitw -t ${FOCUS_WINDOW_NAME} -h -d -l "${h_gutter}" ''
-            tmux splitw -t ${FOCUS_WINDOW_NAME} -h -bd -l "${h_gutter}" ''
-        } >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux splitw -t "${temp_pane}" -h -d -l "${h_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux splitw -t "${temp_pane}" -h -bd -l "${h_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
     fi
     # Top and bottom
     if [[ "${v_gutter}" -ne 0 ]]; then
-        {
-            tmux splitw -t ${FOCUS_WINDOW_NAME} -v -d -l "${v_gutter}" ''
-            tmux splitw -t ${FOCUS_WINDOW_NAME} -v -bd -l "${v_gutter}" ''
-        } >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux splitw -t "${temp_pane}" -v -d -l "${v_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux splitw -t "${temp_pane}" -v -bd -l "${v_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
     fi
 
-    {
-        # Floating pane with grey border
-        tmux set-window-option -t ${FOCUS_WINDOW_NAME} pane-border-style "${INACTIVE_PANE_BORDER_FMT}"
-        tmux set-window-option -t ${FOCUS_WINDOW_NAME} pane-active-border-style "${ACTIVE_PANE_BORDER_FMT}"
-    } >> /tmp/tmux-focus-pane-debug 2>&1
+    # Floating pane with grey border
+    tmux set-window-option -t ${FOCUS_WINDOW_NAME} pane-border-style "${INACTIVE_PANE_BORDER_FMT}" >> /tmp/tmux-focus-pane-debug 2>&1
+    tmux set-window-option -t ${FOCUS_WINDOW_NAME} pane-active-border-style "${ACTIVE_PANE_BORDER_FMT}" >> /tmp/tmux-focus-pane-debug 2>&1
 }
 
 function reset_focus() {
@@ -103,29 +102,39 @@ function reset_focus() {
         echo "found no saved restore command" >> /tmp/tmux-focus-pane-debug
         tmux display "tmux-focus-pane/main.sh:reset_focus: found no saved restore command"
     fi
+    tmux set -ug @tmux-focus-restore-command
 
     local focus_pane
     focus_pane=$( tmux show -gqv @tmux-focus-pane )
-    tmux set -ug @tmux-focus-restore-command
+    local temp_pane
+    temp_pane=$( tmux show -gqv @tmux-focus-temp-pane )
     tmux set -ug @tmux-focus-pane
+    tmux set -ug @tmux-focus-temp-pane
 
     local curr_focus
     curr_focus=$( tmux list-pane -f '#{pane_active}' -F '#D' )
-    if [[ "$curr_focus" = "$focus_pane" ]]; then
-        eval "${restore_command}"
-        return
-    elif [[ -n "${PANE_DIRECTION}" ]]; then
-        {
-            eval "${restore_command}"
-            tmux select-pane -t "${focus_pane}" "${PANE_DIRECTION}"
-        } >> /tmp/tmux-focus-pane-debug 2>&1
-        return
-    else
-        # if it's not a hook, then we should swap for the temp
+
+    if [[ "$curr_focus" = "$focus_pane" || "$curr_focus" = "$temp_pane" ]]; then
         eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
         return
+    elif [[ -n "${PANE_DIRECTION}" ]]; then
+        eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux select-pane -t "${focus_pane}" "${PANE_DIRECTION}" >> /tmp/tmux-focus-pane-debug 2>&1
+        return
+    elif [[ -n "${HOOK_NAME}" ]]; then
+        eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
+        return
+    else
+        tmux swapp -s "${focus_pane}" -t "${temp_pane}" -d >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux swapp -s "${temp_pane}" -t "${curr_focus}" >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux selectw -t "${FOCUS_WINDOW_NAME}"
+
+        local restore_command="tmux swapp -s '${curr_focus}' -t '${temp_pane}'; tmux killw -t ${FOCUS_WINDOW_NAME}"
+        tmux set -g @tmux-focus-restore-command "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux set -g @tmux-focus-pane "${curr_focus}"
+        tmux set -g @tmux-focus-temp-pane "${temp_pane}"
+        return
     fi
-    # local restore_command="tmux swapp -s '${focus_pane}' -t '${temp_pane}'; tmux killw -t ${FOCUS_WINDOW_NAME}"
 }
 
 function install_hooks() {
@@ -134,8 +143,8 @@ function install_hooks() {
 }
 
 function remove_hooks() {
-    tmux set -ug 'window-pane-changed[13]'
-    tmux set -ug 'session-window-changed[13]'
+    tmux set -ug 'window-pane-changed[13]' >> /tmp/tmux-focus-pane-debug 2>&1
+    tmux set -ug 'session-window-changed[13]' >> /tmp/tmux-focus-pane-debug 2>&1
 }
 
 function usage() {
