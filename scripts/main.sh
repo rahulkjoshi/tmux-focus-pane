@@ -62,6 +62,17 @@ function open_focus() {
     tmux pipep -t "${temp_pane}" -I "echo 'clear'"
 }
 
+function calc_out() {
+    local aspect_h
+    aspect_h=$( tmux show -gqv @tmux-focus-horizontal-aspect )
+    aspect_h=${aspect_h:-3}
+    local aspect_v
+    aspect_v=$( tmux show -gqv @tmux-focus-vertical-aspect )
+    aspect_v=${aspect_v:-4}
+
+    eval "${CURRENT_DIR}/calc.pl" --aspect_h="${aspect_h}" --aspect_v="${aspect_v}"
+}
+
 function draw_focus_window() {
     local temp_pane
     local active_panes
@@ -76,7 +87,7 @@ function draw_focus_window() {
 
     local h_gutter
     local v_gutter
-    IFS=',' read -r h_gutter v_gutter <<< "$( "${CURRENT_DIR}/calc.pl" )"
+    IFS=',' read -r h_gutter v_gutter <<< "$( calc_out )"
 
     # Partition space around focus
     # Left and right
