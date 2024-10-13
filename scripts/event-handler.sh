@@ -4,7 +4,10 @@
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 focus_window_name="focus"
 
+HOOK_NAME=''
+
 function defocus() {
+
     local focus_pane
     focus_pane=$(tmux show -gqv @tmux-focus-pane)
 
@@ -19,38 +22,45 @@ function defocus() {
         # Order matters. Check left and right first because they span the full
         # height.
         if [[ $( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F '#{pane_at_left}' ) -eq 1 ]]; then
-            move_flag='-L'
+            move_flag='--pane_direction=-L'
         elif [[ $( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F '#{pane_at_right}' ) -eq 1 ]]; then
-            move_flag='-R'
+            move_flag='--pane_direction=-R'
         elif [[ $( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F '#{pane_at_top}' ) -eq 1 ]]; then
-            move_flag='-U'
+            move_flag='--pane_direction=-U'
         elif [[ $( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F '#{pane_at_bottom}' ) -eq 1 ]]; then
-            move_flag='-D'
+            move_flag='--pane_direction=-D'
         fi
     fi
 
-    echo "callling toggle '${move_flag}'" >> /tmp/tmux-focus-pane-debug
-    "${CURRENT_DIR}/main.sh" toggle "${move_flag}"
+    local hook_name="--hook_name=$HOOK_NAME"
+
+    echo "defocus: calling toggle '${hook_name}' '${move_flag}'" >> /tmp/tmux-focus-pane-debug
+    "${CURRENT_DIR}/main.sh" toggle "${hook_name}" "${move_flag}"
 }
 
 function refocus() {
+    local hook_name="--hook_name=$HOOK_NAME"
+
     local pane_list
     pane_list="$( tmux show -gqv @tmux-focus-tagged-panes )"
     local curr_focus
     curr_focus="$( tmux list-panes -F '#D' -f '#{pane_active}' )"
 
     if [[ "${pane_list}" =~ $curr_focus(,|$) ]]; then
-        echo "callling toggle" >> /tmp/tmux-focus-pane-debug
-        "${CURRENT_DIR}/main.sh" toggle
+        echo "refocus: calling toggle '${hook_name}'"  >> /tmp/tmux-focus-pane-debug
+        "${CURRENT_DIR}/main.sh" toggle "$hook_name"
     fi
 }
 
-function main() {
-    if [[ -z $( tmux show -gqv @tmux-focus-restore-command ) ]]; then
-        refocus
-    else
-        defocus
-    fi
-}
+if [[ -z "$1" ]]; then
+    tmux display "tmux-focus-pane/event-handler.sh: unset arg0: hook_name"
+    exit 2
+else
+    HOOK_NAME="$1"
+fi
 
-main
+if [[ -z $( tmux show -gqv @tmux-focus-restore-command ) ]]; then
+    refocus
+else
+    defocus
+fi
