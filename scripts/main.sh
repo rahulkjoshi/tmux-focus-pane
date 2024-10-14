@@ -62,9 +62,9 @@ function open_focus() {
 
     local cow
     if ( cowsay >/dev/null 2>&1 ); then
-        cow="cowsay 'This is a temporary pane.'"
+        cow=";cowsay 'This is a temporary pane.'"
     fi
-    tmux send -t "${temp_pane}" "clear;${cow}" Enter
+    tmux send -t "${temp_pane}" "clear${cow}" Enter >> /tmp/tmux-focus-pane-debug 2>&1
 }
 
 function calc_out() {
