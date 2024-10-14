@@ -13,6 +13,9 @@ PANE_DIRECTION=''
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function toggle_focus() {
+    if (( $( wc -l /tmp/tmux-focus-pane-debug | cut -d' ' -f1 ) > 25 )); then
+        rm /tmp/tmux-focus-pane-debug
+    fi
     if [[ -z "$( tmux show -gqv @tmux-focus-restore-command )" ]]; then
         open_focus
     else
@@ -56,6 +59,8 @@ function open_focus() {
     temp_pane=$( draw_focus_window )
     tmux set -g @tmux-focus-temp-pane "${temp_pane}"
 
+    echo "open_focus - $HOOK_NAME - fp;$focus_pane, tp:$temp_pane" >> /tmp/tmux-focus-pane-debug
+
     local restore_command="tmux swapp -s '${focus_pane}' -t '${temp_pane}'; tmux killw -t ${FOCUS_WINDOW_NAME}"
     tmux set -g @tmux-focus-restore-command "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
     tmux swapp -s "${focus_pane}" -t "${temp_pane}" >> /tmp/tmux-focus-pane-debug 2>&1
@@ -75,10 +80,34 @@ function calc_out() {
     aspect_v=$( tmux show -gqv @tmux-focus-vertical-aspect )
     aspect_v=${aspect_v:-4}
 
-    "${CURRENT_DIR}/calc.pl" --aspect_h="${aspect_h}" --aspect_v="${aspect_v}"
+    local pad_h
+    pad_h=$( tmux show -gqv @tmux-focus-horizontal-pad )
+    pad_h=${pad_h:-0}
+    local pad_v
+    pad_v=$( tmux show -gqv @tmux-focus-vertical-pad )
+    pad_v=${pad_v:-0}
+
+    local min_h
+    min_h=$( tmux show -gqv @tmux-focus-horizontal-min )
+    min_h=${min_h:-110}
+    local max_h
+    max_h=$( tmux show -gqv @tmux-focus-horizontal-max )
+    max_h=${max_h:-250}
+    local min_v
+    min_v=$( tmux show -gqv @tmux-focus-vertical-min )
+    min_v=${min_v:-40}
+    local max_v
+    max_v=$( tmux show -gqv @tmux-focus-vertical-max )
+    max_v=${max_v:-100}
+
+    "${CURRENT_DIR}/calc.pl" --aspect_h="${aspect_h}" --aspect_v="${aspect_v}" \
+        --pad_h="${pad_h}" --pad_v="${pad_v}" \
+        --min_h="${min_h}" --max_h="${max_h}" \
+        --min_v="${min_v}" --max_v="${max_v}"
 }
 
 function draw_focus_window() {
+    local echo_temp="${1:-true}"
     local temp_pane
     local live_panes
     live_panes=$( tmux list-panes -t ${FOCUS_WINDOW_NAME} -f '#{?pane_dead,0,1}' -F '#D' )
@@ -88,7 +117,7 @@ function draw_focus_window() {
         temp_pane="$live_panes"
     fi
     tmux kill-pane -a -t "${temp_pane}"
-    [[ -z "${HOOK_NAME}" ]] && echo "${temp_pane}"
+    [[ "${echo_temp}" == "true" ]] && echo "${temp_pane}"
 
     local h_gutter
     local v_gutter
@@ -126,6 +155,7 @@ function reset_focus() {
     temp_pane=$( tmux show -gqv @tmux-focus-temp-pane )
     tmux set -ug @tmux-focus-pane
     tmux set -ug @tmux-focus-temp-pane
+    echo "reset_focus - $HOOK_NAME $PANE_DIRECTION - fp:$focus_pane, tp:$temp_pane" >> /tmp/tmux-focus-pane-debug
 
     local curr_focus
     curr_focus=$( tmux list-pane -f '#{pane_active}' -F '#D' )
@@ -159,6 +189,10 @@ function install_resize_hooks() {
 
 function remove_resize_hooks() {
     tmux set -ug 'window-resized[13]' >> /tmp/tmux-focus-pane-debug 2>&1
+}
+
+function resize() {
+   draw_focus_window "false"
 }
 
 function install_hooks() {
@@ -197,7 +231,7 @@ while [[ -n "$*" ]]; do
             cmd='usage'
             ;;
         resize )
-            cmd='draw_focus_window'
+            cmd='resize'
             ;;
         install-resize-hooks )
             cmd='install_resize_hooks'
