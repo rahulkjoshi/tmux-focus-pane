@@ -9,7 +9,7 @@ if [[ -z "${1}" ]]; then
     exit
 fi
 
-"${CURRENT_DIR}/main.sh" "$1"
+"${CURRENT_DIR}/main.sh" "$@"
 
 if [[ $? -eq 2 ]]; then
     tmux display-message '(focus-pane) unknown command'

@@ -59,7 +59,12 @@ function open_focus() {
     local restore_command="tmux swapp -s '${focus_pane}' -t '${temp_pane}'; tmux killw -t ${FOCUS_WINDOW_NAME}"
     tmux set -g @tmux-focus-restore-command "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
     tmux swapp -s "${focus_pane}" -t "${temp_pane}" >> /tmp/tmux-focus-pane-debug 2>&1
-    tmux pipep -t "${temp_pane}" -I "echo 'clear'"
+
+    local cow
+    if ( cowsay >/dev/null 2>&1 ); then
+        cow="cowsay 'This is a temporary pane.'"
+    fi
+    tmux send -t "${temp_pane}" "clear;${cow}" Enter
 }
 
 function calc_out() {
@@ -70,20 +75,20 @@ function calc_out() {
     aspect_v=$( tmux show -gqv @tmux-focus-vertical-aspect )
     aspect_v=${aspect_v:-4}
 
-    eval "${CURRENT_DIR}/calc.pl" --aspect_h="${aspect_h}" --aspect_v="${aspect_v}"
+    "${CURRENT_DIR}/calc.pl" --aspect_h="${aspect_h}" --aspect_v="${aspect_v}"
 }
 
 function draw_focus_window() {
     local temp_pane
-    local active_panes
-    active_panes=$( tmux list-panes -t ${FOCUS_WINDOW_NAME} -f '#{pane_active}' -F '#D' )
-    if (( $( echo "${active_panes}" | wc -l ) != 1 )); then
+    local live_panes
+    live_panes=$( tmux list-panes -t ${FOCUS_WINDOW_NAME} -f '#{?pane_dead,0,1}' -F '#D' )
+    if (( $( echo "${live_panes}" | wc -l ) != 1 )); then
         temp_pane=$( tmux splitw -t "${FOCUS_WINDOW_NAME}" -h -P -F '#D' )
     else
-        temp_pane="$active_panes"
+        temp_pane="$live_panes"
     fi
     tmux kill-pane -a -t "${temp_pane}"
-    echo "${temp_pane}"
+    [[ -z "${HOOK_NAME}" ]] && echo "${temp_pane}"
 
     local h_gutter
     local v_gutter
@@ -92,18 +97,18 @@ function draw_focus_window() {
     # Partition space around focus
     # Left and right
     if [[ "${h_gutter}" -ne 0 ]]; then
-        tmux splitw -t "${temp_pane}" -h -d -l "${h_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
-        tmux splitw -t "${temp_pane}" -h -bd -l "${h_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux splitw -t "${temp_pane}" -hd -l "${h_gutter}" '' >>/tmp/tmux-focus-pane-debug 2>&1
+        tmux splitw -t "${temp_pane}" -hdb -l "${h_gutter}" '' >>/tmp/tmux-focus-pane-debug 2>&1
     fi
     # Top and bottom
     if [[ "${v_gutter}" -ne 0 ]]; then
-        tmux splitw -t "${temp_pane}" -v -d -l "${v_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
-        tmux splitw -t "${temp_pane}" -v -bd -l "${v_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux splitw -t "${temp_pane}" -vd -l "${v_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
+        tmux splitw -t "${temp_pane}" -vdb -l "${v_gutter}" '' >> /tmp/tmux-focus-pane-debug 2>&1
     fi
 
     # Floating pane with grey border
-    tmux set-window-option -t ${FOCUS_WINDOW_NAME} pane-border-style "${INACTIVE_PANE_BORDER_FMT}" >> /tmp/tmux-focus-pane-debug 2>&1
-    tmux set-window-option -t ${FOCUS_WINDOW_NAME} pane-active-border-style "${ACTIVE_PANE_BORDER_FMT}" >> /tmp/tmux-focus-pane-debug 2>&1
+    tmux setw -t ${FOCUS_WINDOW_NAME} 'pane-border-style' "${INACTIVE_PANE_BORDER_FMT}" >> /tmp/tmux-focus-pane-debug 2>&1
+    tmux setw -t ${FOCUS_WINDOW_NAME} 'pane-active-border-style' "${ACTIVE_PANE_BORDER_FMT}" >> /tmp/tmux-focus-pane-debug 2>&1
 }
 
 function reset_focus() {
@@ -148,6 +153,14 @@ function reset_focus() {
     fi
 }
 
+function install_resize_hooks() {
+    tmux set -g 'window-resized[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh #{hook}'" >> /tmp/tmux-focus-pane-debug 2>&1
+}
+
+function remove_resize_hooks() {
+    tmux set -ug 'window-resized[13]' >> /tmp/tmux-focus-pane-debug 2>&1
+}
+
 function install_hooks() {
     tmux set -g 'window-pane-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh #{hook}'" >> /tmp/tmux-focus-pane-debug 2>&1
     tmux set -g 'session-window-changed[13]' "run-shell '/usr/bin/env bash ${CURRENT_DIR}/event-handler.sh #{hook}'" >> /tmp/tmux-focus-pane-debug 2>&1
@@ -182,6 +195,15 @@ while [[ -n "$*" ]]; do
             ;;
         list|usage )
             cmd='usage'
+            ;;
+        resize )
+            cmd='draw_focus_window'
+            ;;
+        install-resize-hooks )
+            cmd='install_resize_hooks'
+            ;;
+        remove-resize-hooks )
+            cmd='remove_resize_hooks'
             ;;
         --hook_name=* )
             if [[ -z "${HOOK_NAME}" ]]; then

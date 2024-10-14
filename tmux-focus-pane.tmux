@@ -17,6 +17,13 @@ function install()  {
         "${SCRIPTS_DIR}/main.sh" install-hooks
     fi
 
+    local install_resize_hooks
+    install_resize_hooks=$( tmux show -gqv @tmux-focus-install-resize-hooks )
+    install_resize_hooks="${install_resize_hooks:-false}"
+    if [[ "${install_resize_hooks}" == "true" ]]; then
+        "${SCRIPTS_DIR}/main.sh" install-resize-hooks
+    fi
+
     local toggle_key
     toggle_key=$( tmux show -gqv @tmux-focus-toggle )
     toggle_key=${toggle_key:-z}

@@ -51,6 +51,12 @@ function refocus() {
     fi
 }
 
+function resize() {
+    local hook_name="--hook_name=$HOOK_NAME"
+    echo "resize: calling resize '${hook_name}'"  >> /tmp/tmux-focus-pane-debug
+    "${CURRENT_DIR}/main.sh" resize "$hook_name"
+}
+
 if [[ -z "$1" ]]; then
     tmux display "tmux-focus-pane/event-handler.sh: unset arg0: hook_name"
     exit 2
@@ -61,5 +67,9 @@ fi
 if [[ -z $( tmux show -gqv @tmux-focus-restore-command ) ]]; then
     refocus
 else
-    defocus
+    if [[ "${HOOK_NAME}" = "window-resized" ]]; then
+        resize
+    else
+        defocus
+    fi
 fi
