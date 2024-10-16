@@ -8,7 +8,7 @@ function install()  {
     TAG_NOTE="Tag the selected pane for auto-focus"
     COMMAND_NOTE="Enter focus-pane command"
 
-    COMMAND_PROMPT="(focus-pane) Enter command ('usage' to list commands, or press enter to cancel):"
+    COMMAND_PROMPT="(focus-pane) Enter command ('usage' or <enter> to cancel):"
 
     local install_hooks
     install_hooks=$( tmux show -gqv @tmux-focus-install-hooks )
