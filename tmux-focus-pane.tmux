@@ -36,7 +36,7 @@ function install()  {
     command_key=$( tmux show -gqv @tmux-focus-command-invoke )
     command_key=${command_key:-M-f}
 
-    tmux bind -N "${TOGGLE_NOTE}" "${toggle_key}" run-shell "${SCRIPTS_DIR}/main.sh toggle"
+    tmux bind -N "${TOGGLE_NOTE}" "${toggle_key}" run-shell "${SCRIPTS_DIR}/main.sh focus"
     tmux bind -N "${TAG_NOTE}" "${toggle_tag_key}" run-shell "${SCRIPTS_DIR}/main.sh pane-tag"
     tmux bind -N "${COMMAND_NOTE}" "${command_key}" command-prompt -p "${COMMAND_PROMPT}" "run-shell \"${SCRIPTS_DIR}/command-invoke.sh %%\""
 }
