@@ -206,13 +206,13 @@ function remove_hooks() {
 }
 
 function usage() {
-    tmux display "available commands: [toggle | install-hooks | remove-hooks | pane-tag | list-pane-tags | usage]"
+    tmux display "available commands: [focus | install-hooks | remove-hooks | pane-tag | list-pane-tags | usage]"
 }
 
 cmd=''
 while [[ -n "$*" ]]; do 
     case $1 in
-        toggle )
+        focus )
             cmd='toggle_focus'
             ;;
         install-hooks )

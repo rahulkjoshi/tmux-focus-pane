@@ -26,24 +26,37 @@ Then install the new plugin with `prefix + I`.
 
 ### Toggle Focus Mode
 
-Use the `@tmux-focus-toggle` binding (default `prefix + z`) to toggle zooming a
-particular pane. If a pane is already zoomed in, the same binding returns it to
-its original position.
+Use the `@tmux-focus-toggle` binding (default `prefix + z`) to toggle focus-mode
+a particular pane. If a pane is already in focus-mode, the same binding returns
+it to its original position.
 
 ### Pane/Window Change Hooks
 
-> TODO
+When installed, the hooks reset the focus pane if the window or pane is shifted
+away.
 
-### Zoom Tag (Auto zoom)
+So for example if you're in a focus pane and you switch to the next window
+(`<leader> + n`), the hook will toggle the focus pane and return it to its
+original position.
+
+Similarly, if you switch to the left pane (`<leader> + left`), the hook toggles
+the focus pane, returning it to its original position, and then switch to the
+left pane.
+
+### Tag (Auto-focus)
 
 > [!Note]
 > Requires enabling hooks
 
-> TODO
+Use the `@tmux-focus-tag` binding (default `prefix + Z`), to tag a pane as
+eligible for auto-focus. When the tagged pane becomes the selected pane, it will
+be automatically put into focus mode.
 
 ### Resize Hooks
 
-> TODO
+If installed, the plugin recomputes the focus pane dimensions when the window is
+resized. This can be helpful if often connecting/disconnecting your laptop from
+an external monitor.
 
 ### Configuration Options
 
@@ -52,7 +65,7 @@ its original position.
 | `@tmux-focus-install-hooks`        |        `false` | If `true`, the plugin installs the pane/window change hooks on startup |
 | `@tmux-focus-install-resize-hooks` |        `false` | If `true`, the pluging installs the resize hooks on startup            |
 | `@tmux-focus-toggle`               |   `prefix + z` | Key-binding to trigger the focus toggle                                |
-| `@tmux-focus-zoom-tag`             |   `prefix + Z` | Key-binding to tag a pane to be auto-zoomed                            |
+| `@tmux-focus-tag`                  |   `prefix + Z` | Key-binding to tag a pane to be auto-focused                           |
 | `@tmux-focus-command-invoke`       | `prefix + M-f` | Key-binding to start a prompt to invoke behaviors manually             |
 
 

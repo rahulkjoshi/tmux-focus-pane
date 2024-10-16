@@ -33,8 +33,8 @@ function defocus() {
 
     local hook_name="--hook_name=$HOOK_NAME"
 
-    echo "defocus: calling toggle '${hook_name}' '${move_flag}'" >> /tmp/tmux-focus-pane-debug
-    "${CURRENT_DIR}/main.sh" toggle "${hook_name}" "${move_flag}"
+    echo "defocus: calling focus '${hook_name}' '${move_flag}'" >> /tmp/tmux-focus-pane-debug
+    "${CURRENT_DIR}/main.sh" focus "${hook_name}" "${move_flag}"
 }
 
 function refocus() {
@@ -46,8 +46,8 @@ function refocus() {
     curr_focus="$( tmux list-panes -F '#D' -f '#{pane_active}' )"
 
     if [[ "${pane_list}" =~ $curr_focus(,|$) ]]; then
-        echo "refocus: calling toggle '${hook_name}'"  >> /tmp/tmux-focus-pane-debug
-        "${CURRENT_DIR}/main.sh" toggle "$hook_name"
+        echo "refocus: calling focus '${hook_name}'"  >> /tmp/tmux-focus-pane-debug
+        "${CURRENT_DIR}/main.sh" focus "$hook_name"
     fi
 }
 
