@@ -9,6 +9,7 @@ ACTIVE_PANE_BORDER_FMT="fg=color250"
 # Set by parsing flags
 HOOK_NAME=''
 PANE_DIRECTION=''
+WINDOW_DIRECTION=''
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -155,22 +156,28 @@ function reset_focus() {
     temp_pane=$( tmux show -gqv @tmux-focus-temp-pane )
     tmux set -ug @tmux-focus-pane
     tmux set -ug @tmux-focus-temp-pane
-    echo "reset_focus - $HOOK_NAME $PANE_DIRECTION - fp:$focus_pane, tp:$temp_pane" >> /tmp/tmux-focus-pane-debug
+    echo "reset_focus - $HOOK_NAME $PANE_DIRECTION $WINDOW_DIRECTION - fp:$focus_pane, tp:$temp_pane" >> /tmp/tmux-focus-pane-debug
 
     local curr_focus
     curr_focus=$( tmux list-pane -f '#{pane_active}' -F '#D' )
 
     if [[ "$curr_focus" = "$focus_pane" || "$curr_focus" = "$temp_pane" ]]; then
+        # Focus was manually toggled or triggered focus from inside the temp
+        # pane
         eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
         return
     elif [[ -n "${PANE_DIRECTION}" ]]; then
+        # Moved to an adjacent pane inside the focus window
         eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
         tmux select-pane -t "${focus_pane}" "${PANE_DIRECTION}" >> /tmp/tmux-focus-pane-debug 2>&1
         return
     elif [[ -n "${HOOK_NAME}" ]]; then
+        # Called by hook implies active window was changed
         eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
         return
     else
+        # Focus called from another pane, so restore currently focused pane and
+        # focus the current pane
         tmux swapp -s "${focus_pane}" -t "${temp_pane}" -d >> /tmp/tmux-focus-pane-debug 2>&1
         tmux swapp -s "${temp_pane}" -t "${curr_focus}" >> /tmp/tmux-focus-pane-debug 2>&1
         tmux selectw -t "${FOCUS_WINDOW_NAME}"
@@ -260,6 +267,22 @@ while [[ -n "$*" ]]; do
             fi
             if [[ ! "${PANE_DIRECTION}" =~ -L|-R|-U|-D ]]; then
                 message="--pane_direction='${PANE_DIRECTION}'. Expected one of [-L | -R | -U | -D ]."
+                echo "${message}" >> /tmp/tmux-focus-pane-debug
+                tmux display "tmux-focus-pane/main.sh: ${message}"
+                exit 2
+            fi
+            ;;
+        --window_direction=* )
+            if [[ -z "${WINDOW_DIRECTION}" ]]; then
+                WINDOW_DIRECTION="${1/--window_direction=/}"
+            else
+                message="--window_direction specified more than once"
+                echo "${message}" >> /tmp/tmux-focus-pane-debug
+                tmux display "tmux-focus-pane/main.sh: ${message}"
+                exit 2
+            fi
+            if [[ ! "${WINDOW_DIRECTION}" =~ -n|-p ]]; then
+                message="--window_direction='${WINDOW_DIRECTION}'. Expected one of [-n | -p]."
                 echo "${message}" >> /tmp/tmux-focus-pane-debug
                 tmux display "tmux-focus-pane/main.sh: ${message}"
                 exit 2

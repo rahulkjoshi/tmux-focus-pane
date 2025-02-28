@@ -30,6 +30,16 @@ function defocus() {
         elif [[ $( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F '#{pane_at_bottom}' ) -eq 1 ]]; then
             move_flag='--pane_direction=-D'
         fi
+    else
+        # Window was changed
+
+        local curr_window
+        curr_window=$( tmux list-window -F '#I' -f "#{window_active}" )
+        local focus_window
+        focus_window=$( tmux list-window -F '#I' -f "#{==:#W,${focus_window_name}}" )
+        if [[ $(( focus_window - 1 )) -eq ${curr_window} ]]; then
+            move_flag='--window_direction=-p'
+        fi
     fi
 
     local hook_name="--hook_name=$HOOK_NAME"
