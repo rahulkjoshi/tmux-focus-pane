@@ -53,7 +53,7 @@ function open_focus() {
     focus_pane="$( tmux list-panes -F '#D' -f '#{pane_active}' )"
     tmux set -g @tmux-focus-pane "${focus_pane}"
     # Create new window named focus
-    tmux new-window -n ${FOCUS_WINDOW_NAME} >> /tmp/tmux-focus-pane-debug 2>&1
+    tmux new-window -a -n ${FOCUS_WINDOW_NAME} >> /tmp/tmux-focus-pane-debug 2>&1
 
     local temp_pane
     temp_pane=$( draw_focus_window )

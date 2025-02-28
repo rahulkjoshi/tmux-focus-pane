@@ -6,6 +6,7 @@ focus_window_name="focus"
 
 HOOK_NAME=''
 
+# Triggers the de-focus because panes or windows were switched.
 function defocus() {
     local focus_pane
     focus_pane=$(tmux show -gqv @tmux-focus-pane)
@@ -37,7 +38,8 @@ function defocus() {
     "${CURRENT_DIR}/main.sh" focus "${hook_name}" "${move_flag}"
 }
 
-function refocus() {
+# Triggers focus action if switched to a pane tagged for auto focus.
+function auto_focus() {
     local hook_name="--hook_name=$HOOK_NAME"
 
     local pane_list
@@ -46,11 +48,12 @@ function refocus() {
     curr_focus="$( tmux list-panes -F '#D' -f '#{pane_active}' )"
 
     if [[ "${pane_list}" =~ $curr_focus(,|$) ]]; then
-        echo "refocus: calling focus '${hook_name}'"  >> /tmp/tmux-focus-pane-debug
+        echo "auto_focus: calling focus '${hook_name}'"  >> /tmp/tmux-focus-pane-debug
         "${CURRENT_DIR}/main.sh" focus "$hook_name"
     fi
 }
 
+# Triggers resize action on window resize.
 function resize() {
     local hook_name="--hook_name=$HOOK_NAME"
     echo "resize: calling resize '${hook_name}'"  >> /tmp/tmux-focus-pane-debug
@@ -65,7 +68,7 @@ else
 fi
 
 if [[ -z $( tmux show -gqv @tmux-focus-restore-command ) ]]; then
-    refocus
+    auto_focus
 else
     if [[ "${HOOK_NAME}" = "window-resized" ]]; then
         resize
