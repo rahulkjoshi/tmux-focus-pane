@@ -13,8 +13,8 @@ function defocus() {
 
     local move_flag=''
 
-    if [[ "$( tmux list-window -f '#{window_active}' -F "#{==:#W,${focus_window_name}}" )" -eq 1 ]]; then
-        if [[ $( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F "#{==:#D,${focus_pane}}" ) -eq 1 ]]; then
+    if [[ "$( tmux list-window -f '#{window_active}' -F '#W' )" == "${focus_window_name}" ]]; then
+        if [[ "$( tmux list-pane -t "${focus_window_name}" -f '#{pane_active}' -F '#D' )" == "${focus_pane}" ]]; then
             # Active window and active pane are the focus pane
             exit
         fi
@@ -33,11 +33,11 @@ function defocus() {
     else
         # Window was changed
 
-        local curr_window
-        curr_window=$( tmux list-window -F '#I' -f "#{window_active}" )
-        local focus_window
-        focus_window=$( tmux list-window -F '#I' -f "#{==:#W,${focus_window_name}}" )
-        if [[ $(( focus_window - 1 )) -eq ${curr_window} ]]; then
+        local curr_window_idx
+        curr_window_idx=$( tmux list-window -f '#{window_active}' -F '#I' )
+        local focus_window_idx
+        focus_window_idx=$( tmux list-window -f "#{==:#W,${focus_window_name}}" -F '#I' )
+        if [[ $(( focus_window_idx - 1 )) -eq ${curr_window_idx} ]]; then
             move_flag='--window_direction=-p'
         fi
     fi

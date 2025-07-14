@@ -60,7 +60,7 @@ function open_focus() {
     temp_pane=$( draw_focus_window )
     tmux set -g @tmux-focus-temp-pane "${temp_pane}"
 
-    echo "open_focus - $HOOK_NAME - fp;$focus_pane, tp:$temp_pane" >> /tmp/tmux-focus-pane-debug
+    echo "open_focus - $HOOK_NAME - fp:$focus_pane, tp:$temp_pane" >> /tmp/tmux-focus-pane-debug
 
     local restore_command="tmux swapp -s '${focus_pane}' -t '${temp_pane}'; tmux killw -t ${FOCUS_WINDOW_NAME}"
     tmux set -g @tmux-focus-restore-command "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
@@ -156,23 +156,27 @@ function reset_focus() {
     temp_pane=$( tmux show -gqv @tmux-focus-temp-pane )
     tmux set -ug @tmux-focus-pane
     tmux set -ug @tmux-focus-temp-pane
-    echo "reset_focus - $HOOK_NAME $PANE_DIRECTION $WINDOW_DIRECTION - fp:$focus_pane, tp:$temp_pane" >> /tmp/tmux-focus-pane-debug
+    echo "reset_focus - $HOOK_NAME - fp:$focus_pane, tp:$temp_pane - $PANE_DIRECTION/$WINDOW_DIRECTION" >> /tmp/tmux-focus-pane-debug
 
     local curr_focus
     curr_focus=$( tmux list-pane -f '#{pane_active}' -F '#D' )
 
-    if [[ "$curr_focus" = "$focus_pane" || "$curr_focus" = "$temp_pane" ]]; then
-        # Focus was manually toggled or triggered focus from inside the temp
-        # pane
-        eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
-        return
-    elif [[ -n "${PANE_DIRECTION}" ]]; then
+    if [[ -n "${PANE_DIRECTION}" ]]; then
         # Moved to an adjacent pane inside the focus window
         eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
         tmux select-pane -t "${focus_pane}" "${PANE_DIRECTION}" >> /tmp/tmux-focus-pane-debug 2>&1
         return
     elif [[ -n "${HOOK_NAME}" ]]; then
         # Called by hook implies active window was changed
+        eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
+        if [[ -n "${WINDOW_DIRECTION}" ]]; then
+            echo "tmux select-window ${WINDOW_DIRECTION}" >> /tmp/tmux-focus-pane-debug 2>&1
+            tmux select-window "${WINDOW_DIRECTION}" >> /tmp/tmux-focus-pane-debug 2>&1
+        fi
+        return
+    elif [[ "$curr_focus" = "$focus_pane" || "$curr_focus" = "$temp_pane" ]]; then
+        # Focus was manually toggled or triggered focus from inside the temp
+        # pane
         eval "${restore_command}" >> /tmp/tmux-focus-pane-debug 2>&1
         return
     else
