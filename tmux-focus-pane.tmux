@@ -27,18 +27,21 @@ function install()  {
     local toggle_key
     toggle_key=$( tmux show -gqv @tmux-focus-toggle )
     toggle_key=${toggle_key:-z}
+    toggle_key=${toggle_key//<np> /-n }
 
     local toggle_tag_key
     toggle_tag_key=$( tmux show -gqv @tmux-focus-tag )
     toggle_tag_key=${toggle_tag_key:-Z}
+    toggle_tag_key=${toggle_tag_key//<np> /-n }
 
     local command_key
     command_key=$( tmux show -gqv @tmux-focus-command-invoke )
     command_key=${command_key:-M-f}
+    command_key=${command_key//<np> /-n }
 
-    tmux bind -N "${TOGGLE_NOTE}" "${toggle_key}" run-shell "${SCRIPTS_DIR}/main.sh focus"
-    tmux bind -N "${TAG_NOTE}" "${toggle_tag_key}" run-shell "${SCRIPTS_DIR}/main.sh pane-tag"
-    tmux bind -N "${COMMAND_NOTE}" "${command_key}" command-prompt -p "${COMMAND_PROMPT}" "run-shell \"${SCRIPTS_DIR}/command-invoke.sh %%\""
+    tmux bind -N "${TOGGLE_NOTE}" ${toggle_key} run-shell "${SCRIPTS_DIR}/main.sh focus"
+    tmux bind -N "${TAG_NOTE}" ${toggle_tag_key} run-shell "${SCRIPTS_DIR}/main.sh pane-tag"
+    tmux bind -N "${COMMAND_NOTE}" ${command_key} command-prompt -p "${COMMAND_PROMPT}" "run-shell \"${SCRIPTS_DIR}/command-invoke.sh %%\""
 }
 
 install
