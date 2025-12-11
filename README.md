@@ -46,7 +46,8 @@ left pane.
 
 ### Tag (Auto-focus)
 
-> [!Note] Requires enabling hooks
+> [!Note]
+> Requires enabling hooks
 
 Use the `@tmux-focus-tag` binding (default `prefix + Z`), to tag a pane as
 eligible for auto-focus. When the tagged pane becomes the selected pane, it will
@@ -60,7 +61,8 @@ an external monitor.
 
 ### Configuration Options
 
-> [!Note] Prefix keybindings with `<np>` to bind directly in the root table. For
+> [!Note]
+> Prefix keybindings with `<np>` to bind directly in the root table. For
 > example, `tmux set -g @tmux-focux-tag '<np> C-z'`
 
 | Option                             | Default Value  | Description            |
